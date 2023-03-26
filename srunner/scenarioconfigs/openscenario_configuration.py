@@ -65,7 +65,8 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
 
         Note: This will throw if the config is not valid. But this is fine here.
         """
-        xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIO.xsd")
+        #xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIO.xsd")
+        xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIOv1.2.xsd")
         xsd = xmlschema.XMLSchema(xsd_file)
         xsd.validate(self.xml_tree)
 
@@ -75,7 +76,8 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
 
         Note: This will throw if the catalog config is not valid. But this is fine here.
         """
-        xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIO.xsd")
+        #xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIO.xsd")
+        xsd_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../openscenario/OpenSCENARIOv1.2.xsd")
         xsd = xmlschema.XMLSchema(xsd_file)
         xsd.validate(catalog_xml_tree)
 

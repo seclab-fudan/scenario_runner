@@ -536,8 +536,61 @@ class OpenScenarioParser(object):
         for child in override_action:
             if strtobool(child.attrib.get('active')):
                 raise NotImplementedError("Controller override actions are not yet supported")
+                        
+        return module, args
+            
+
+    def get_controller_gbf(xml_tree, catalogs, private_xml):
+        """
+        Extract the object controller from the OSC XML or a catalog
+
+        Args:
+            xml_tree: Containing the controller information,
+                or the reference to the catalog it is defined in.
+            catalogs: XML Catalogs that could contain the EnvironmentAction
+
+        returns:
+           module: Python module containing the controller implementation
+           args: Dictonary with (key, value) parameters for the controller
+        """
+
+        assign_action = next(xml_tree.iter("AssignControllerAction"))
+
+        properties = None
+        if assign_action.find('Controller') is not None:
+            properties = assign_action.find('Controller').find('Properties')
+        elif assign_action.find("CatalogReference") is not None:
+            catalog_reference = assign_action.find("CatalogReference")
+            properties = OpenScenarioParser.get_catalog_entry(catalogs, catalog_reference).find('Properties')
+
+        module = None
+        args = {}
+        for prop in properties:
+            if prop.attrib.get('name') == "module":
+                module = prop.attrib.get('value')
+            else:
+                args[prop.attrib.get('name')] = prop.attrib.get('value')
+
+        override_action = xml_tree.find('OverrideControllerValueAction')
+        for child in override_action:
+            if strtobool(child.attrib.get('active')):
+                raise NotImplementedError("Controller override actions are not yet supported")
+            
+        # add speed profile
+        speed_list = []
+        speed_profile = private_xml.findall(".//SpeedProfileEntry")
+        if speed_profile is not None:
+            for speed_child in speed_profile:
+                #print(speed_child)
+                if speed_child.attrib['speed'] is not None:
+                    speed = float(speed_child.attrib['speed'])
+                    speed_list.append(speed)
+
+        #speed_list.append(0)
+        args['speed_profile'] = speed_list
 
         return module, args
+
 
     @staticmethod
     def get_route(xml_tree, catalogs):
@@ -572,6 +625,7 @@ class OpenScenarioParser(object):
                 waypoints.append((position, routing_option))
         else:
             raise AttributeError("No waypoints has been set")
+        
 
         return waypoints
 
@@ -1239,7 +1293,7 @@ class OpenScenarioParser(object):
                     atomic = KeepLongitudinalGap(actor, reference_actor=obj_actor, gap=gap, gap_type=gap_type,
                                                  max_speed=max_speed, continues=continues, freespace=freespace,
                                                  name=maneuver_name)
-                else:
+                elif private_action.find('SpeedProfileAction') is None:
                     raise AttributeError("Unknown longitudinal action")
             elif private_action.find('LateralAction') is not None:
                 private_action = private_action.find('LateralAction')
