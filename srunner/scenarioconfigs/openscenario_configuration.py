@@ -175,12 +175,12 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
             world.get_settings()
             wmap = world.get_map()
 
-        if world is None or (wmap is not None and wmap.name.split('/')[-1] != self.town):
+        if False and ( world is None or (wmap is not None and wmap.name.split('/')[-1] != self.town) ):
             if ".xodr" in self.town:
                 with open(self.town, 'r', encoding='utf-8') as od_file:
                     data = od_file.read()
-                index = data.find('<OpenDRIVE>')
-                data = data[index:]
+                # index = data.find('<OpenDRIVE>')
+                # data = data[index:]
 
                 old_map = ""
                 if wmap is not None:

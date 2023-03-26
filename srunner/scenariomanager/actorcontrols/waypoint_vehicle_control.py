@@ -356,7 +356,7 @@ class WaypointVehicleControl(BasicControl):
         
         self._actor.set_target_velocity(velocity)
 
-        print(velocity)
+        # print(velocity)
         # set new angular velocity
         current_yaw = math.degrees(math.atan2(direction.y, direction.x))
         delta_yaw = current_yaw - self.last_yaw
