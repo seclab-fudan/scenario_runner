@@ -336,6 +336,7 @@ class WaypointVehicleControl(BasicControl):
                     self._actor.get_traffic_light_state() == carla.TrafficLightState.Red):
                 target_speed = 0
 
+        '''
         if target_speed < current_speed:
             if not self._brake_lights_active:
                 self._brake_lights_active = True
@@ -357,13 +358,13 @@ class WaypointVehicleControl(BasicControl):
                 # If the tmp_speed is < 0.5 the vehicle may not properly accelerate.
                 # Therefore, we bump the speed to 0.5 m/s if target_speed allows.
                 target_speed = max(tmp_speed, min(0.5, target_speed))
-    
+        '''
 
         # set new linear velocity
-        flag=True
         velocity = carla.Vector3D(0, 0, 0)
         # line a
         direction = next_location - CarlaDataProvider.get_location(self._actor)
+        print(f"[+] Target Direction is : {direction}")
         direction_norm = math.sqrt(direction.x**2 + direction.y**2)
         '''
         # check this point
