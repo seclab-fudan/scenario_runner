@@ -42,31 +42,7 @@ class WaypointVehicleControl(BasicControl):
         self.last_yaw = None
         self.final_index = -1
 
-        if args and 'consider_obstacles' in args and strtobool(args['consider_obstacles']):
-            self._consider_obstacles = strtobool(args['consider_obstacles'])
-            bp = CarlaDataProvider.get_world().get_blueprint_library().find('sensor.other.obstacle')
-            bp.set_attribute('distance', '250')
-            if args and 'proximity_threshold' in args:
-                self._proximity_threshold = float(args['proximity_threshold'])
-                bp.set_attribute('distance', str(max(float(args['proximity_threshold']), 250)))
-            bp.set_attribute('hit_radius', '1')
-            bp.set_attribute('only_dynamics', 'True')
-            self._obstacle_sensor = CarlaDataProvider.get_world().spawn_actor(
-                bp, carla.Transform(carla.Location(x=self._actor.bounding_box.extent.x, z=1.0)), attach_to=self._actor)
-            self._obstacle_sensor.listen(lambda event: self._on_obstacle(event))  # pylint: disable=unnecessary-lambda
-
-        if args and 'consider_trafficlights' in args and strtobool(args['consider_trafficlights']):
-            self._consider_traffic_lights = strtobool(args['consider_trafficlights'])
-
-        if args and 'max_deceleration' in args:
-            self._max_deceleration = float(args['max_deceleration'])
-
-        if args and 'max_acceleration' in args:
-            self._max_acceleration = float(args['max_acceleration'])
-
-        if args and 'attach_camera' in args and strtobool(args['attach_camera']):
-            self._visualizer = Visualizer(self._actor)
-        
+       
         # add speed_profile
         if args and 'speed_profile' in args:
             self.speed_profile = args['speed_profile']
@@ -138,7 +114,7 @@ class WaypointVehicleControl(BasicControl):
                     map_wp = map_wps[0]
                 else:
                     break
-
+            # print(f"[+] Entering here")
             # Remove all waypoints that are too close to the vehicle
             while (self._generated_waypoint_list and
                    self._generated_waypoint_list[0].location.distance(self._actor.get_location()) < 0.5):
@@ -164,7 +140,7 @@ class WaypointVehicleControl(BasicControl):
             current_time = GameTime.get_time()
             #print(current_time)
             time_index = int(current_time * 10) + 1
-            #print(time_index - current_time * 10)
+            print(time_index - current_time * 10)
             if time_index >= self.final_index:
                 #direction_norm = self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[self.final_index]), self._get_target_speed(self.final_index), current_time)
                 #if direction_norm < 4.0 and self._reached_goal == False:
