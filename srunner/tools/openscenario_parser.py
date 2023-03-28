@@ -102,7 +102,8 @@ class ParameterRef:
         """
         Returns: True when text is a literal/number
         """
-        return self._is_matching(pattern=r"(-)?\d+(\.\d*)?")
+        # return self._is_matching(pattern=r"(-)?\d+(\.\d*)?")
+        return self._is_matching(pattern="^[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?$")
 
     def is_parameter(self) -> bool:
         """

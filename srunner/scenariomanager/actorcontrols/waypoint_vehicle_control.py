@@ -140,7 +140,7 @@ class WaypointVehicleControl(BasicControl):
             current_time = GameTime.get_time()
             #print(current_time)
             time_index = int(current_time * 10) + 1
-            print(time_index - current_time * 10)
+            # print(time_index - current_time * 10)
             if time_index >= self.final_index:
                 #direction_norm = self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[self.final_index]), self._get_target_speed(self.final_index), current_time)
                 #if direction_norm < 4.0 and self._reached_goal == False:
