@@ -175,7 +175,7 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
             world.get_settings()
             wmap = world.get_map()
 
-        if False and ( world is None or (wmap is not None and wmap.name.split('/')[-1] != self.town) ):
+        if True and ( world is None or (wmap is not None and wmap.name.split('/')[-1] != self.town) ):
             if ".xodr" in self.town:
                 with open(self.town, 'r', encoding='utf-8') as od_file:
                     data = od_file.read()
@@ -192,7 +192,7 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
                     self.logger.warning(" Wrong OpenDRIVE map in use. Forcing reload of CARLA world")
 
                     vertex_distance = 2.0  # in meters
-                    wall_height = 1.0      # in meters
+                    wall_height = 0.0      # in meters
                     extra_width = 0.6      # in meters
                     world = self.client.generate_opendrive_world(str(data),
                                                                  carla.OpendriveGenerationParameters(
