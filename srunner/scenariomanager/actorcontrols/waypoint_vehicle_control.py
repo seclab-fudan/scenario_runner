@@ -92,33 +92,26 @@ class WaypointVehicleControl(BasicControl):
             self._actor.set_target_velocity(velocity)
             return
 
-        if self._visualizer:
-            self._visualizer.render()
-
-        self._reached_goal = False
+        # self._reached_goal = False
 
         if self._waypoints:
-            # print(len(self._waypoints), self._actor.id)
-            # When changing from "free" driving without pre-defined waypoints to a defined route with waypoints
-            # it may happen that the first few waypoints are too close to the ego vehicle for obtaining a
-            # reasonable control command. Therefore, we drop these waypoints first.
             self._reached_goal = False
-            #if self.last_position is None:
-                #self.last_position = CarlaDataProvider.get_location(self._actor)
-            if self.last_yaw is None:
-                self.last_yaw = CarlaDataProvider.get_transform(self._actor).rotation.yaw
+            self.last_yaw = CarlaDataProvider.get_transform(self._actor).rotation.yaw
             if self.final_index == -1:
                 self.final_index = len(self._waypoints)
-            # print(self.last_yaw)
-            # get the time
             current_time = GameTime.get_time()
-            # print(current_time)
-            time_index = int(current_time * 10) 
-            # print(self._waypoints[time_index].rotation.yaw)
-            # print(time_index - current_time * 10)
-            if time_index >= self.final_index:
-                #direction_norm = self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[self.final_index]), self._get_target_speed(self.final_index), current_time)
-                #if direction_norm < 4.0 and self._reached_goal == False:
+            if self.last_index == -1:
+                time_index = 0
+            else:
+                time_index = self.last_index
+                while time_index < self.final_index:
+                    if self._waypoints[time_index].location.distance(self._actor.get_location()) < 0.3 :
+                        time_index += 1
+                    else:
+                        # print("current {}, max {}, skip {} indexes, id={}".format(time_index,self.final_index, time_index - self.last_index, self._actor.id ))
+                        break
+
+            if time_index >= self.final_index : #and self._waypoints[-1].location.distance(self._actor.get_location()) < 0.1:
                 self._reached_goal = True
             elif time_index != self.last_index:
                 self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[time_index]), self._get_target_speed(time_index), current_time)
@@ -254,36 +247,17 @@ class WaypointVehicleControl(BasicControl):
 
     def _set_new_velocity_gbf(self, time_index, next_location, target_speed, current_time):
         """
-        Calculate and set the new actor veloctiy given the current actor
-        location and the _next_location_
-
-        If _consider_obstacles is true, the speed is adapted according to the closest
-        obstacle in front of the actor, if it is within the _proximity_threshold distance.
-        If _consider_trafficlights is true, the vehicle will enforce a stop at a red
-        traffic light.
-        If _max_deceleration is set, the vehicle will reduce its speed according to the
-        given deceleration value.
-        If the vehicle reduces its speed, braking lights will be activated.
-
-        Args:
-            next_location (carla.Location): Next target location of the actor
-
-        returns:
-            direction (carla.Vector3D): Length of direction vector of the actor
         """
 
         # update the time
         if not self._last_update:
             self._last_update = current_time
 
-        next_location = self._offset_waypoint(self._waypoints[time_index])
-        last_location = self._offset_waypoint(self._waypoints[time_index - 1])
 
         #current_speed = math.sqrt(self._actor.get_velocity().x**2 + self._actor.get_velocity().y**2)
 
         # set new linear velocity
         velocity = carla.Vector3D(0, 0, 0)
-        #direction = next_location - last_location
         direction = next_location - CarlaDataProvider.get_location(self._actor)
         direction_norm = math.sqrt(direction.x**2 + direction.y**2)
         if direction_norm != 0:
@@ -292,10 +266,9 @@ class WaypointVehicleControl(BasicControl):
         else:
             return
         
+        # print("set velocity : {}".format(velocity))
         self._actor.set_target_velocity(velocity)
 
-        # print(velocity)
-        # set new angular velocity
         current_yaw = math.degrees(math.atan2(direction.y, direction.x))
         delta_yaw = current_yaw - self.last_yaw
 
@@ -330,7 +303,6 @@ class WaypointVehicleControl(BasicControl):
             speed = self.speed_profile[index]
 
         self.update_target_speed(speed)
-
         return speed
 
 
