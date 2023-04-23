@@ -97,49 +97,24 @@ class WaypointVehicleControl(BasicControl):
 
         self._reached_goal = False
 
-        if not self._waypoints:
-            # No waypoints are provided, so we have to create a list of waypoints internally
-            # get next waypoints from map, to avoid leaving the road
-            self._reached_goal = False
-
-            map_wp = None
-            if not self._generated_waypoint_list:
-                map_wp = CarlaDataProvider.get_map().get_waypoint(CarlaDataProvider.get_location(self._actor))
-            else:
-                map_wp = CarlaDataProvider.get_map().get_waypoint(self._generated_waypoint_list[-1].location)
-            while len(self._generated_waypoint_list) < 50:
-                map_wps = map_wp.next(2.0)
-                if map_wps:
-                    self._generated_waypoint_list.append(map_wps[0].transform)
-                    map_wp = map_wps[0]
-                else:
-                    break
-            # print(f"[+] Entering here")
-            # Remove all waypoints that are too close to the vehicle
-            while (self._generated_waypoint_list and
-                   self._generated_waypoint_list[0].location.distance(self._actor.get_location()) < 0.5):
-                self._generated_waypoint_list = self._generated_waypoint_list[1:]
-
-            direction_norm = self._set_new_velocity(self._offset_waypoint(self._generated_waypoint_list[0]))
-            if direction_norm < 2.0:
-                self._generated_waypoint_list = self._generated_waypoint_list[1:]
-        else:
+        if self._waypoints:
+            # print(len(self._waypoints), self._actor.id)
             # When changing from "free" driving without pre-defined waypoints to a defined route with waypoints
             # it may happen that the first few waypoints are too close to the ego vehicle for obtaining a
             # reasonable control command. Therefore, we drop these waypoints first.
             self._reached_goal = False
-
             #if self.last_position is None:
                 #self.last_position = CarlaDataProvider.get_location(self._actor)
             if self.last_yaw is None:
                 self.last_yaw = CarlaDataProvider.get_transform(self._actor).rotation.yaw
             if self.final_index == -1:
                 self.final_index = len(self._waypoints)
-
+            # print(self.last_yaw)
             # get the time
             current_time = GameTime.get_time()
-            #print(current_time)
-            time_index = int(current_time * 10) + 1
+            # print(current_time)
+            time_index = int(current_time * 10) 
+            # print(self._waypoints[time_index].rotation.yaw)
             # print(time_index - current_time * 10)
             if time_index >= self.final_index:
                 #direction_norm = self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[self.final_index]), self._get_target_speed(self.final_index), current_time)
@@ -148,20 +123,6 @@ class WaypointVehicleControl(BasicControl):
             elif time_index != self.last_index:
                 self._set_new_velocity_gbf(time_index, self._offset_waypoint(self._waypoints[time_index]), self._get_target_speed(time_index), current_time)
                 self.last_index = time_index
-            '''
-            while self._waypoints and self._waypoints[0].location.distance(self._actor.get_location()) < 0.5:
-                self._waypoints = self._waypoints[1:]
-
-            self._reached_goal = False
-            if not self._waypoints:
-                self._reached_goal = True
-            else:
-                direction_norm = self._set_new_velocity_gbf(self._offset_waypoint(self._waypoints[0]))
-                if direction_norm < 4.0 and self._reached_goal == False:
-                    self._waypoints = self._waypoints[1:]
-                    if not self._waypoints:
-                        self._reached_goal = True
-            '''
 
     def _offset_waypoint(self, transform):
         """
@@ -177,6 +138,7 @@ class WaypointVehicleControl(BasicControl):
         if self._offset == 0:
             offset_location = transform.location
         else:
+            print("never triggered")
             right_vector = transform.get_right_vector()
             offset_location = transform.location + carla.Location(x=self._offset*right_vector.x,
                                                                   y=self._offset*right_vector.y)
