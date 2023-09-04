@@ -4,7 +4,7 @@
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-    <LogicFile filepath="CHN_Cho-2.xodr"/>
+    <LogicFile filepath="/home/vm4/cr2carla/xodr/CHN_Cho-2.xodr.xodr"/>
   </RoadNetwork>
   <Entities>
     <ScenarioObject name="Ego">

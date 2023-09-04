@@ -4,7 +4,7 @@
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-    <LogicFile filepath="Town04"/>
+    <LogicFile filepath="/home/vm4/cr2carla/xodr/Town04.xodr"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
