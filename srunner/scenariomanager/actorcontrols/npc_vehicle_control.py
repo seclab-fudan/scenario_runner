@@ -137,3 +137,11 @@ class NpcVehicleControl(BasicControl):
             light_state = self._actor.get_light_state()
             light_state &= ~carla.VehicleLightState.Brake
             self._actor.set_light_state(carla.VehicleLightState(light_state))
+
+        if self._actor.get_location().z < -0.2:
+                self._reached_goal = True
+                if self._actor:
+                    if CarlaDataProvider.actor_id_exists(self._actor.id):
+                        print("destroy actor in npc controller: {}".format(self._actor.id))
+                        CarlaDataProvider.remove_actor_by_id(self._actor.id)
+                    CarlaDataProvider.get_world().wait_for_tick()

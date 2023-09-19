@@ -14,7 +14,7 @@ import math
 import carla
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
-
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 class PedestrianControl(BasicControl):
 
@@ -75,3 +75,13 @@ class PedestrianControl(BasicControl):
         else:
             control.direction = self._actor.get_transform().rotation.get_forward_vector()
             self._actor.apply_control(control)
+
+        if self._actor.get_location().z < -0.2:
+                # velocity = carla.Vector3D(0, 0, 0)
+                # self._actor.set_target_velocity(velocity)
+                self._reached_goal = True
+                if self._actor:
+                    if CarlaDataProvider.actor_id_exists(self._actor.id):
+                        print("destroy actor in pedestrian controller: {}".format(self._actor.id))
+                        CarlaDataProvider.remove_actor_by_id(self._actor.id)
+                    CarlaDataProvider.get_world().wait_for_tick()
