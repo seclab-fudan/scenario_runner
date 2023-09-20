@@ -14,6 +14,7 @@ class WaypointVehicleControl(BasicControl):
     def __init__(self, actor, args=None):
         super(WaypointVehicleControl, self).__init__(actor)
         self._generated_waypoint_list = []
+        self._waypoints_speed_np_array = None
         self._last_update = None
         self._consider_traffic_lights = False
         self._consider_obstacles = False
@@ -24,13 +25,21 @@ class WaypointVehicleControl(BasicControl):
         self._obstacle_sensor = None
         self._obstacle_distance = float('inf')
         self._obstacle_actor = None
-        self._obstacle_distance_threshold = 0.1
+        self._obstacle_distance_threshold = 0.5
+
+        self._minimum_look_ahead_distance = 0.1
 
         self._visualizer = None
 
         self._brake_lights_active = False
 
+        """hitory variable for every step"""
         self._last_waypoint_index = 0
+        self._last_control_applied_time = 0
+        self._last_speed = 0
+        self._last_integral = 0
+        self._last_derivative = 0
+
         self.speed_profile = []
         #self.last_position = None
         self.last_yaw = None
@@ -38,7 +47,7 @@ class WaypointVehicleControl(BasicControl):
         bp = CarlaDataProvider.get_world().get_blueprint_library().find('sensor.other.obstacle')
         bp.set_attribute('distance', '10')
         bp.set_attribute('hit_radius', '1')
-        bp.set_attribute('only_dynamics', 'True')
+        bp.set_attribute('only_dynamics', 'False')
         self._obstacle_sensor = CarlaDataProvider.get_world().spawn_actor(
             bp, carla.Transform(carla.Location(x=self._actor.bounding_box.extent.x, z=1.0)), attach_to=self._actor)
         self._obstacle_sensor.listen(lambda event: self._on_obstacle(event))  # pylint: disable=unnecessary-lambda
@@ -51,6 +60,8 @@ class WaypointVehicleControl(BasicControl):
         if args and 'speed_profile' in args:
             self.speed_profile = args['speed_profile']
 
+
+
     def _get_vehicle_info(self):
         physics_control = self._actor.get_physics_control()
         rear_axle_center = (physics_control.wheels[2].position + physics_control.wheels[3].position)/200
@@ -58,7 +69,7 @@ class WaypointVehicleControl(BasicControl):
 
         self._max_steer = physics_control.wheels[0].max_steer_angle
         self._wheelbase = np.linalg.norm([offset.x, offset.y, offset.z])
-        self._throttle = 0.3
+        self._throttle = 0
         self._brake = 0
         # self._actor.set_simulate_physics(True)
         
@@ -114,12 +125,26 @@ class WaypointVehicleControl(BasicControl):
         """
         # if self._stop_in_front_of_obstacle():
         #     return
+
+        if CarlaDataProvider.get_location(self._actor).z < -0.2:
+            self._reached_goal = True
+
         if self._waypoints:
+            if self._waypoints_speed_np_array is None:
+                """intialize a np array for lateral control"""
+                vector3D_to_list = lambda v: (v.x, v.y)
+                self._waypoints_speed_np_array = np.array([(self._waypoints[i].location.x,
+                                                      self._waypoints[i].location.y,
+                                                      self.speed_profile[i]) for i in range(len(self._waypoints))])
+
+            vehicle_speed = self._actor.get_velocity().length()
             self._next_waypoint_index = self._get_next_waypoint_index(self._last_waypoint_index,
-                                                                    look_ahead_distance=self._throttle * 5)
+                                                                    look_ahead_distance=max(vehicle_speed*0.5, self._minimum_look_ahead_distance))
+            # self._next_waypoint_index = self._get_closest_waypoint_index(CarlaDataProvider.get_location(self._actor))+2
             if self._next_waypoint_index >= 0 and self._next_waypoint_index < len(self._waypoints):
                 self._apply_control(self._next_waypoint_index)
                 self._last_waypoint_index = self._next_waypoint_index
+                self._last_control_applied_time = GameTime.get_time()
             else:
                 self._reached_goal = True
 
@@ -158,33 +183,92 @@ class WaypointVehicleControl(BasicControl):
         self._actor.apply_control(control_cmd)
 
     def _longitudinal_control(self, waypoint_index):
-        time_delta = waypoint_index*1.0 - GameTime.get_time()
-        time_delta = 1
-        vehicle_speed = np.linalg.norm(CarlaDataProvider.get_velocity(self._actor))
+        """
+        A longitudinal PID controller
+        """
+        # time_delta = waypoint_index*1.0 - GameTime.get_time()
+        # time_delta = 1
+        # vehicle_speed = np.linalg.norm(CarlaDataProvider.get_velocity(self._actor))
+        # target_speed = self._get_target_speed(waypoint_index)
+        # kp = 0.1
+        # return (target_speed - vehicle_speed) / time_delta * kp
+
+        kp = 0.14
+        ki = 0.3
+        kd = 0.4
+        
+        vehicle_speed = self._actor.get_velocity().length()
         target_speed = self._get_target_speed(waypoint_index)
-        kp = 0.1
-        return (target_speed - vehicle_speed) / time_delta * kp
+        delta_t = GameTime.get_time() - self._last_control_applied_time
+        delta_v = target_speed - vehicle_speed
+        integral = self._last_integral + delta_v * delta_t
+        derivative = delta_v - self._last_derivative
+        acc = kp * delta_v + ki * integral + kd * derivative
+
+        throttle = np.tanh(acc)
+        brake = 0
+
+        throttle = np.clip(throttle, -1, 1)
+        self._last_integral = integral
+        self._last_derivative = derivative
+
+        return throttle
 
     def _lateral_control(self, waypoint_index):
-        vehicle_speed = np.linalg.norm(CarlaDataProvider.get_velocity(self._actor))
-
+        vehicle_speed = self._actor.get_velocity().length()
         waypoint = self._waypoints[waypoint_index] 
         wp_loc_rel = self._relative_location(waypoint) + carla.Vector3D(self._wheelbase, 0, 0)
         wp_ar = [wp_loc_rel.x, wp_loc_rel.y]
         d2 = wp_ar[0]**2 + wp_ar[1]**2
-        steer_rad = math.atan(2 * self._wheelbase * wp_loc_rel.y / d2)
+        steer_rad = math.atan(2 * self._wheelbase * wp_loc_rel.y / (d2*0.25))
         steer_deg = math.degrees(steer_rad)
         steer_deg = np.clip(steer_deg, -self._max_steer, self._max_steer)
         steer = steer_deg / self._max_steer
-        steer = steer * vehicle_speed / math.sqrt(d2)  
+        steer = steer
 
         return steer
 
+        # vehicle_transform = CarlaDataProvider.get_transform(self._actor)
+        # vehicle_speed = self._actor.get_velocity().length()
+
+        # ke = 0.3
+        # kv = 1
+
+        # current_xy = np.array([vehicle_transform.location.x, vehicle_transform.location.y])
+        # crosstrack_error = np.min(np.sum((current_xy - self._waypoints_speed_np_array[:,:2])**2, axis=1))
+        # yaw_cross_track = np.arctan2(vehicle_transform.location.y - self._waypoints[0].location.y,
+        #                        vehicle_transform.location.x - self._waypoints[0].location.x)
+        
+        # yaw_path = np.deg2rad(self._waypoints[waypoint_index].rotation.yaw)
+        
+        # psi = yaw_path - np.deg2rad(vehicle_transform.rotation.yaw)
+        # psi = psi - 2*np.pi if psi > np.pi else psi
+        # psi = psi + 2*np.pi if psi < -np.pi else psi
+
+        # yaw_modify = yaw_path - yaw_cross_track
+        # if yaw_modify > np.pi:
+        #     yaw_modify -= 2*np.pi
+        # if yaw_modify < -np.pi:
+        #     yaw_modify += 2*np.pi
+        
+        # crosstrack_error = abs(crosstrack_error) if yaw_modify > 0 else -abs(crosstrack_error)
+
+        # psi_crosstrack = np.arctan(ke * crosstrack_error / (kv + vehicle_speed))
+        # # print("psi, psi_crosstrack: {}, {}".format(psi, psi_crosstrack))
+        
+        # sigma = psi + psi_crosstrack
+        # sigma = sigma - 2*np.pi if sigma > np.pi else sigma 
+        # sigma = sigma + 2*np.pi if sigma < -np.pi else sigma
+        # steer_rad = sigma
+        # steer = np.clip(np.rad2deg(steer_rad)/self._max_steer, -1, 1)
+
+        # return steer
+
     def _stop_in_front_of_obstacle(self):
-        vehicle_speed = np.linalg.norm(CarlaDataProvider.get_velocity(self._actor))
+        vehicle_speed = self._actor.get_velocity().length()
         if self._obstacle_distance < max(vehicle_speed*0.5, self._obstacle_distance_threshold):
             control_cmd = carla.VehicleControl()
-            control_cmd.brake = 10
+            control_cmd.brake = 2
             self._actor.apply_control(control_cmd)
             return True
         else:
@@ -193,6 +277,10 @@ class WaypointVehicleControl(BasicControl):
         
     def _speed_to_velocity(self, speed, rotation):
         return rotation.get_forward_vector() * speed
+
+    def _get_closest_waypoint_index(self, loc):
+        current_xy = np.array([loc.x, loc.y])
+        return np.argmin(np.sum((current_xy - self._waypoints_speed_np_array[:,:2])**2, axis=1))
 
     def _get_next_waypoint_index(self, last_index, min_distance = 1000, look_ahead_distance = 5):
         
@@ -422,6 +510,8 @@ def control_pure_pursuit(vehicle_tr, waypoint_tr, max_steer, wheelbase):
     steer_deg = math.degrees(steer_rad)
     steer_deg = np.clip(steer_deg, -max_steer, max_steer)
     return steer_deg / max_steer
+
+
 
 def get_next_waypoint(world, vehicle, waypoints, next_index,look_ahead_distance):
     vehicle_location = vehicle.get_location()
