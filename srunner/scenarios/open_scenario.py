@@ -252,7 +252,7 @@ class OpenScenario(BasicScenario):
                         if private.attrib.get('entityRef', None) == actor.rolename:
                             for private_action in private.iter("PrivateAction"):
                                 for controller_action in private_action.iter('ControllerAction'):
-                                    module, args = OpenScenarioParser.get_controller_gbf(
+                                    module, args = OpenScenarioParser.get_controller(
                                         controller_action, self.config.catalogs, private)
                                     controller_atomic = ChangeActorControl(
                                         carla_actor, control_py_module=module, args=args,

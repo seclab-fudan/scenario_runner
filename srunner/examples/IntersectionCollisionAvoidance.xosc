@@ -4,7 +4,7 @@
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-    <LogicFile filepath="/home/vm4/cr2carla/xodr/Town01.xodr"/>
+    <LogicFile filepath="Town01"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -157,7 +157,7 @@
                       <WorldPosition x="92" y="63.8" z="0" h="-1.56"/>
                     </TargetPosition>
                     <FinalSpeed>
-                      <RelativeSpeedToMaster value="3" speedTargetValueType="delta"/>
+                      <RelativeSpeedToMaster value='3' speedTargetValueType='delta'/>
                     </FinalSpeed>
                   </SynchronizeAction>
                 </PrivateAction>

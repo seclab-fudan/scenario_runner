@@ -2,8 +2,8 @@
 <OpenSCENARIO>
   <FileHeader revMajor="1" revMinor="0" date="2020-03-24T12:00:00" description="CARLA:PedestrianCrossing" author=""/>
   <ParameterDeclarations>
-    <ParameterDeclaration name="weather" parameterType="string" value="ClearNoon"/>
-    <ParameterDeclaration name="carcolor" parameterType="string" value="122,122,122"/>
+    <ParameterDeclaration name="weather" parameterType="string" value="ClearNoon" />
+    <ParameterDeclaration name="carcolor" parameterType="string" value="122,122,122" />
   </ParameterDeclarations>
   <CatalogLocations>
     <VehicleCatalog>
@@ -26,7 +26,7 @@
     </ControllerCatalog>
   </CatalogLocations>
   <RoadNetwork>
-    <LogicFile filepath="/home/vm4/Collision_RootCause_GT_Dataset/all/xodr/Town01.xodr"/>
+    <LogicFile filepath="Town01"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -36,14 +36,14 @@
     <ScenarioObject name="vehicle">
       <CatalogReference catalogName="VehicleCatalog" entryName="vehicle.tesla.model3">
         <ParameterAssignments>
-          <ParameterAssignment parameterRef="carcolor" value="255,255,0"/>
+          <ParameterAssignment parameterRef="carcolor" value="255,255,0" />
         </ParameterAssignments>
       </CatalogReference>
     </ScenarioObject>
     <ScenarioObject name="vehicle2">
       <CatalogReference catalogName="VehicleCatalog" entryName="vehicle.tesla.model3">
         <ParameterAssignments>
-          <ParameterAssignment parameterRef="carcolor" value="122,122,122"/>
+          <ParameterAssignment parameterRef="carcolor" value="122,122,122" />
         </ParameterAssignments>
       </CatalogReference>
     </ScenarioObject>
